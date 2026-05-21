@@ -143,8 +143,9 @@ def get_spotify_info(track_name, artist_name):
         "spotify_url": None,
         "preview_url": None
     }
+if "username" in st.session_state:
 
-if "favorites" not in st.session_state:
+ if "favorites" not in st.session_state:
 
     response = supabase.table(
         "favorites"
