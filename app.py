@@ -1,3 +1,4 @@
+from supabase import create_client
 import plotly.graph_objects as go
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -10,6 +11,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 load_dotenv()
 import sqlite3
 import hashlib
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
 conn = sqlite3.connect(
     "users.db",
     check_same_thread=False
@@ -50,12 +58,10 @@ def auth_screen():
 
             hashed_password = hash_password(password)
 
-            cursor.execute(
-                "INSERT INTO users VALUES (?, ?)",
-                (username, hashed_password)
-            )
-
-            conn.commit()
+            supabase.table("users").insert({
+              "username": username,
+              "password_hash": hashed_password
+            }).execute()
 
             st.success("Kayıt başarılı!")
 
@@ -65,12 +71,15 @@ def auth_screen():
 
             hashed_password = hash_password(password)
 
-            cursor.execute(
-                "SELECT * FROM users WHERE username=? AND password=?",
-                (username, hashed_password)
-            )
+            response = supabase.table("users").select("*").eq(
+              "username",
+             username
+            ).eq(
+              "password_hash",
+               hashed_password
+            ).execute()
 
-            user = cursor.fetchone()
+            user = response.data
 
             if user:
 

@@ -4,3 +4,4 @@ scikit-learn
 spotipy
 python-dotenv
 plotly
+supabase
