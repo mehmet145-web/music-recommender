@@ -54,16 +54,22 @@ def auth_screen():
 
     if menu == "Register":
 
-        if st.button("Kayıt Ol"):
+       if st.button("Kayıt Ol"):
 
-            hashed_password = hash_password(password)
+        hashed_password = hash_password(password)
+
+        try:
 
             supabase.table("users").insert({
-              "username": username,
-              "password_hash": hashed_password
+                "username": username,
+                "password_hash": hashed_password
             }).execute()
 
             st.success("Kayıt başarılı!")
+
+        except Exception as e:
+
+            st.error(f"Kayıt hatası: {e}")
 
     else:
 
