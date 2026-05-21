@@ -412,67 +412,50 @@ if st.session_state.results is not None:
           "track_genre": row["track_genre"]
          }).execute()
 
-        st.session_state.favorites.append({
-            "username": st.session_state.username,
-           "track_name": row["track_name"],
-           "artists": row["artists"],
-           "track_genre": row["track_genre"]
-        })
-
 st.sidebar.subheader("❤️ Playlist")
 
-if len(st.session_state.favorites) == 0:
+response = supabase.table("favorites").select("*").eq(
+    "username",
+    st.session_state.username
+).execute()
+
+favorites = response.data
+
+if len(favorites) == 0:
 
     st.sidebar.write("Henüz favori yok.")
 
 else:
 
-    fav_df = pd.DataFrame(st.session_state.favorites)
+    fav_df = pd.DataFrame(favorites)
 
-    st.sidebar.dataframe(fav_df)
+    st.sidebar.dataframe(
+        fav_df[["track_name", "artists", "track_genre"]]
+    )
 
-    csv = fav_df.to_csv(index=False).encode("utf-8")
+    remove_song = st.sidebar.selectbox(
+        "Favoriden çıkar:",
+        fav_df["track_name"].unique(),
+        key="remove_favorite_select"
+    )
 
-    if "track_name" in fav_df.columns:
+    if st.sidebar.button("Sil", key="delete_favorite_button"):
 
-        remove_song = st.sidebar.selectbox(
-            "Favoriden çıkar:",
-            fav_df["track_name"].unique()
-        )
+        supabase.table("favorites").delete().eq(
+            "username",
+            st.session_state.username
+        ).eq(
+            "track_name",
+            remove_song
+        ).execute()
 
-        if st.sidebar.button("Sil"):
+        st.rerun()
 
-            supabase.table("favorites").delete().eq(
-               "username",
-               st.session_state.username
-            ).eq(
-               "track_name",
-               remove_song
-            ).execute()
-
-            response = supabase.table(
-              "favorites"
-            ).select("*").eq(
-              "username",
-              st.session_state.username
-            ).execute()
-
-            st.session_state.favorites = response.data
-
-            st.sidebar.success("Favoriden çıkarıldı!")
-            st.rerun()
-
-            pd.DataFrame(
-                st.session_state.favorites
-            ).to_csv(
-                "playlist.csv",
-                index=False
-            )
-
-            st.sidebar.success("Favoriden çıkarıldı!")
-            st.rerun()
-
-    csv = fav_df.to_csv(index=False).encode("utf-8")
+    csv = fav_df[[
+        "track_name",
+        "artists",
+        "track_genre"
+    ]].to_csv(index=False).encode("utf-8")
 
     st.sidebar.download_button(
         label="Playlist'i CSV indir",
