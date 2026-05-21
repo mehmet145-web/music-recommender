@@ -409,7 +409,7 @@ if st.session_state.results is not None:
          "track_genre": row["track_genre"]
         }).execute()
 
-    st.toast("Favoriye eklendi! ❤️")
+        st.toast("Favoriye eklendi! ❤️")
 
 st.sidebar.subheader("❤️ Playlist")
 
