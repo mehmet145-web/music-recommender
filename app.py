@@ -185,6 +185,9 @@ if not st.session_state.logged_in:
     st.stop()
 
 st.title("🎵 Mini Spotify Öneri Sistemi")
+if "last_action" in st.session_state:
+    st.success(st.session_state.last_action)
+    del st.session_state.last_action
 
 top_n = st.slider(
     "Kaç öneri gösterilsin?",
@@ -403,13 +406,13 @@ if st.session_state.results is not None:
         if st.button("❤️ Favoriye ekle", key=f"fav_{i}_{row['track_name']}"):
 
          supabase.table("favorites").insert({
-         "username": st.session_state.username,
-         "track_name": row["track_name"],
-         "artists": row["artists"],
-         "track_genre": row["track_genre"]
+             "username": st.session_state.username,
+             "track_name": row["track_name"],
+             "artists": row["artists"],
+             "track_genre": row["track_genre"]
         }).execute()
 
-        st.toast("Favoriye eklendi! ❤️")
+        st.session_state.last_action = "Favoriye eklendi!"
 
 st.sidebar.subheader("❤️ Playlist")
 
