@@ -1,0 +1,303 @@
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+from dotenv import load_dotenv
+import os
+import streamlit as st
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
+load_dotenv()
+
+sp = spotipy.Spotify(
+    auth_manager=SpotifyClientCredentials(
+        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET")
+    )
+)
+def get_spotify_info(track_name, artist_name):
+    query = f"track:{track_name} artist:{artist_name}"
+    search_results = sp.search(q=query, type="track", limit=1)
+
+    tracks = search_results["tracks"]["items"]
+
+    if len(tracks) > 0:
+        track = tracks[0]
+
+        return {
+            "cover_url": track["album"]["images"][0]["url"],
+            "spotify_url": track["external_urls"]["spotify"],
+            "preview_url": track.get("preview_url")
+        }
+
+    return {
+        "cover_url": None,
+        "spotify_url": None,
+        "preview_url": None
+    }
+
+if "favorites" not in st.session_state:
+
+    try:
+        st.session_state.favorites = pd.read_csv(
+            "playlist.csv"
+        ).to_dict("records")
+
+    except:
+        st.session_state.favorites = []
+if "results" not in st.session_state:
+    st.session_state.results = None
+
+df = pd.read_csv("data/dataset.csv")
+df = df.sample(2000, random_state=42).reset_index(drop=True)
+
+features = [
+    "danceability",
+    "energy",
+    "acousticness",
+    "instrumentalness",
+    "valence",
+    "tempo",
+    "popularity"
+]
+
+df = df.dropna(subset=features).reset_index(drop=True)
+
+X = df[features]
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+st.title("🎵 Mini Spotify Öneri Sistemi")
+
+top_n = st.slider(
+    "Kaç öneri gösterilsin?",
+    3,
+    10,
+    5
+)
+
+mood = st.selectbox(
+    "Mood seç:",
+    [
+        "Normal",
+        "Gym",
+        "Sad",
+        "Party",
+        "Focus",
+        "Night Drive"
+    ],
+    key="mood_select"
+)
+
+st.sidebar.title("🎧 Kontrol Paneli")
+st.sidebar.write("Toplam şarkı:", len(df))
+st.sidebar.write("Seçilen mood:", mood)
+
+if mood == "Gym":
+    st.sidebar.success("Yüksek enerji modu")
+elif mood == "Sad":
+    st.sidebar.info("Düşük valence modu")
+elif mood == "Party":
+    st.sidebar.warning("Party modu aktif")
+elif mood == "Focus":
+    st.sidebar.write("Odak modu aktif")
+elif mood == "Night Drive":
+    st.sidebar.write("Gece sürüş modu")
+
+search = st.text_input("Şarkı ara")
+
+filtered_songs = df[
+    df["track_name"].str.contains(search, case=False, na=False)
+]["track_name"].unique()
+
+song = st.selectbox(
+    "Bir şarkı seç:",
+    filtered_songs,
+    key="song_select"
+)
+
+selected_song_data = df[df["track_name"] == song].iloc[0]
+
+st.sidebar.subheader("🎼 Şarkı Analizi")
+
+for feature in ["energy", "danceability", "valence", "acousticness"]:
+    st.sidebar.write(feature.capitalize(), round(selected_song_data[feature], 2))
+    st.sidebar.progress(float(selected_song_data[feature]))
+
+if st.button("Öner"):
+
+    if mood == "Normal":
+
+        song_index = df[df["track_name"] == song].index[0]
+        selected_genre = df.loc[song_index, "track_genre"]
+
+        same_genre_indices = df[
+            df["track_genre"] == selected_genre
+        ].index.tolist()
+
+        similarities = cosine_similarity(
+            [X_scaled[song_index]],
+            X_scaled[same_genre_indices]
+        )[0]
+
+        top_positions = similarities.argsort()[-top_n-1:-1][::-1]
+
+        similar_indices = [
+            same_genre_indices[i]
+            for i in top_positions
+        ]
+
+        results = df.iloc[similar_indices]
+
+    elif mood == "Gym":
+
+        results = df[
+            (df["energy"] > 0.7) &
+            (df["danceability"] > 0.6)
+        ].sort_values(by="popularity", ascending=False).head(top_n)
+
+    elif mood == "Sad":
+
+        results = df[
+          (df["valence"] < 0.5) &
+          (df["energy"] < 0.8)
+        ].sort_values(by="popularity", ascending=False).head(top_n)
+
+    elif mood == "Party":
+
+        results = df[
+            (df["danceability"] > 0.7) &
+            (df["energy"] > 0.65)
+        ].sort_values(by="popularity", ascending=False).head(top_n)
+
+    elif mood == "Focus":
+
+        results = df[
+            (df["instrumentalness"] > 0.4) |
+            (df["acousticness"] > 0.6)
+        ].sort_values(by="popularity", ascending=False).head(top_n)
+
+    elif mood == "Night Drive":
+
+        results = df[
+            (df["energy"] > 0.4) &
+            (df["valence"] > 0.4) &
+            (df["tempo"] > 90)
+        ].sort_values(by="popularity", ascending=False).head(top_n)
+
+    st.session_state.results = results
+
+
+if st.session_state.results is not None:
+
+    st.subheader("Benzer Şarkılar")
+
+    results = st.session_state.results[
+        [
+            "track_name",
+            "artists",
+            "track_genre",
+            "energy",
+            "danceability",
+            "valence",
+            "tempo"
+        ]
+    ]
+
+    for i, row in results.reset_index(drop=True).iterrows():
+
+        spotify_info = get_spotify_info(
+            row["track_name"],
+            row["artists"]
+        )
+
+        cover_url = spotify_info["cover_url"]
+        spotify_url = spotify_info["spotify_url"]
+        preview_url = spotify_info["preview_url"]
+
+        if cover_url:
+            st.image(cover_url, width=220)
+
+        if spotify_url:
+            st.link_button("Spotify’da aç", spotify_url)
+
+        if preview_url:
+            st.audio(preview_url)
+
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#1e1e1e;
+                padding:20px;
+                border-radius:15px;
+                margin-bottom:10px;
+                border:1px solid #333;
+            ">
+                <h3>🎵 {row["track_name"]}</h3>
+                <p>🎤 <b>Sanatçı:</b> {row["artists"]}</p>
+                <p>🎧 <b>Tür:</b> {row["track_genre"]}</p>
+                <p>🤖 <b>Neden önerildi?</b> Benzer enerji, dans edilebilirlik ve tempo değerlerine sahip.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "❤️ Favoriye ekle",
+            key=f"fav_{i}_{row['track_name']}"
+        ):
+            st.session_state.favorites.append({
+                "track_name": row["track_name"],
+                "artists": row["artists"],
+                "track_genre": row["track_genre"]
+            })
+
+            pd.DataFrame(
+                st.session_state.favorites
+            ).to_csv(
+                "playlist.csv",
+                index=False
+            )
+
+            st.success("Favoriye eklendi!")
+
+st.sidebar.subheader("❤️ Playlist")
+
+if len(st.session_state.favorites) == 0:
+
+    st.sidebar.write("Henüz favori yok.")
+
+else:
+
+    fav_df = pd.DataFrame(st.session_state.favorites)
+
+    st.sidebar.dataframe(fav_df)
+remove_song = st.sidebar.selectbox(
+    "Favoriden çıkar:",
+    fav_df["track_name"].unique()
+)
+
+if st.sidebar.button("Sil"):
+    st.session_state.favorites = [
+        fav for fav in st.session_state.favorites
+        if fav["track_name"] != remove_song
+    ]
+
+    pd.DataFrame(
+        st.session_state.favorites
+    ).to_csv(
+        "playlist.csv",
+        index=False
+    )
+
+    st.sidebar.success("Favoriden çıkarıldı!")
+    st.rerun()
+
+    csv = fav_df.to_csv(index=False).encode("utf-8")
+
+    st.sidebar.download_button(
+        label="Playlist'i CSV indir",
+        data=csv,
+        file_name="playlist.csv",
+        mime="text/csv"
+    )
