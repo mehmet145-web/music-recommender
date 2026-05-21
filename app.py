@@ -272,28 +272,39 @@ else:
     fav_df = pd.DataFrame(st.session_state.favorites)
 
     st.sidebar.dataframe(fav_df)
-fav_df = pd.DataFrame(st.session_state.favorites)
 
-remove_song = st.sidebar.selectbox(
-    "Favoriden çıkar:",
-    fav_df["track_name"].unique()
-)
+    csv = fav_df.to_csv(index=False).encode("utf-8")
 
-if st.sidebar.button("Sil"):
-    st.session_state.favorites = [
-        fav for fav in st.session_state.favorites
-        if fav["track_name"] != remove_song
-    ]
-
-    pd.DataFrame(
-        st.session_state.favorites
-    ).to_csv(
-        "playlist.csv",
-        index=False
+    st.sidebar.download_button(
+        label="Playlist'i CSV indir",
+        data=csv,
+        file_name="playlist.csv",
+        mime="text/csv"
     )
 
-    st.sidebar.success("Favoriden çıkarıldı!")
-    st.rerun()
+    if "track_name" in fav_df.columns:
+
+        remove_song = st.sidebar.selectbox(
+            "Favoriden çıkar:",
+            fav_df["track_name"].unique()
+        )
+
+        if st.sidebar.button("Sil"):
+
+            st.session_state.favorites = [
+                fav for fav in st.session_state.favorites
+                if fav["track_name"] != remove_song
+            ]
+
+            pd.DataFrame(
+                st.session_state.favorites
+            ).to_csv(
+                "playlist.csv",
+                index=False
+            )
+
+            st.sidebar.success("Favoriden çıkarıldı!")
+            st.rerun()
 
     csv = fav_df.to_csv(index=False).encode("utf-8")
 
