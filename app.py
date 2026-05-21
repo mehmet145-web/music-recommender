@@ -39,8 +39,7 @@ def get_spotify_info(track_name, artist_name):
             }
 
     except Exception as e:
-
-        print("Spotify API hatası:", e)
+        st.warning(f"Spotify API hatası: {e}")
 
     return {
         "cover_url": None,
