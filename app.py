@@ -15,19 +15,32 @@ sp = spotipy.Spotify(
     )
 )
 def get_spotify_info(track_name, artist_name):
-    query = f"track:{track_name} artist:{artist_name}"
-    search_results = sp.search(q=query, type="track", limit=1)
 
-    tracks = search_results["tracks"]["items"]
+    try:
 
-    if len(tracks) > 0:
-        track = tracks[0]
+        query = f"track:{track_name} artist:{artist_name}"
 
-        return {
-            "cover_url": track["album"]["images"][0]["url"],
-            "spotify_url": track["external_urls"]["spotify"],
-            "preview_url": track.get("preview_url")
-        }
+        search_results = sp.search(
+            q=query,
+            type="track",
+            limit=1
+        )
+
+        tracks = search_results["tracks"]["items"]
+
+        if len(tracks) > 0:
+
+            track = tracks[0]
+
+            return {
+                "cover_url": track["album"]["images"][0]["url"],
+                "spotify_url": track["external_urls"]["spotify"],
+                "preview_url": track.get("preview_url")
+            }
+
+    except Exception as e:
+
+        print("Spotify API hatası:", e)
 
     return {
         "cover_url": None,
