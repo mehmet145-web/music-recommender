@@ -272,6 +272,8 @@ else:
     fav_df = pd.DataFrame(st.session_state.favorites)
 
     st.sidebar.dataframe(fav_df)
+fav_df = pd.DataFrame(st.session_state.favorites)
+
 remove_song = st.sidebar.selectbox(
     "Favoriden çıkar:",
     fav_df["track_name"].unique()
