@@ -401,18 +401,23 @@ if st.session_state.results is not None:
             unsafe_allow_html=True
         )
         if st.button(
-            "❤️ Favoriye ekle",
-            key=f"fav_{i}_{row['track_name']}"
+          "❤️ Favoriye ekle",
+          key=f"fav_{i}_{row['track_name']}"
         ):
 
-           supabase.table("favorites").insert({
-           "username": st.session_state.username,
+          supabase.table("favorites").insert({
+          "username": st.session_state.username,
+          "track_name": row["track_name"],
+          "artists": row["artists"],
+          "track_genre": row["track_genre"]
+         }).execute()
+
+        st.session_state.favorites.append({
+            "username": st.session_state.username,
            "track_name": row["track_name"],
            "artists": row["artists"],
            "track_genre": row["track_genre"]
-        }).execute()
-
-        st.success("Favoriye eklendi!")
+        })
 
 st.sidebar.subheader("❤️ Playlist")
 
