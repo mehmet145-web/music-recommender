@@ -146,13 +146,14 @@ def get_spotify_info(track_name, artist_name):
 
 if "favorites" not in st.session_state:
 
-    try:
-        st.session_state.favorites = pd.read_csv(
-            "playlist.csv"
-        ).to_dict("records")
+    response = supabase.table(
+        "favorites"
+    ).select("*").eq(
+        "username",
+        st.session_state.username
+    ).execute()
 
-    except:
-        st.session_state.favorites = []
+    st.session_state.favorites = response.data
 if "results" not in st.session_state:
     st.session_state.results = None
 
@@ -403,20 +404,14 @@ if st.session_state.results is not None:
             "❤️ Favoriye ekle",
             key=f"fav_{i}_{row['track_name']}"
         ):
-            st.session_state.favorites.append({
-                "track_name": row["track_name"],
-                "artists": row["artists"],
-                "track_genre": row["track_genre"]
-            })
+            supabase.table("favorites").insert({
+              "username": st.session_state.username,
+              "track_name": row["track_name"],
+              "artists": row["artists"],
+              "track_genre": row["track_genre"]
+        }).execute()
 
-            pd.DataFrame(
-                st.session_state.favorites
-            ).to_csv(
-                "playlist.csv",
-                index=False
-            )
-
-            st.success("Favoriye eklendi!")
+        st.success("Favoriye eklendi!")
 
 st.sidebar.subheader("❤️ Playlist")
 
@@ -441,10 +436,25 @@ else:
 
         if st.sidebar.button("Sil"):
 
-            st.session_state.favorites = [
-                fav for fav in st.session_state.favorites
-                if fav["track_name"] != remove_song
-            ]
+            supabase.table("favorites").delete().eq(
+               "username",
+               st.session_state.username
+            ).eq(
+               "track_name",
+               remove_song
+            ).execute()
+
+            response = supabase.table(
+              "favorites"
+            ).select("*").eq(
+              "username",
+              st.session_state.username
+            ).execute()
+
+            st.session_state.favorites = response.data
+
+            st.sidebar.success("Favoriden çıkarıldı!")
+            st.rerun()
 
             pd.DataFrame(
                 st.session_state.favorites
