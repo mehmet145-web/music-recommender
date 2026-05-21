@@ -8,6 +8,87 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 load_dotenv()
+import sqlite3
+import hashlib
+conn = sqlite3.connect(
+    "users.db",
+    check_same_thread=False
+)
+
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    username TEXT,
+    password TEXT
+)
+""")
+
+conn.commit()
+def hash_password(password):
+    return hashlib.sha256(
+        password.encode()
+    ).hexdigest()
+def auth_screen():
+
+    st.title("🎵 Mini Spotify Login")
+
+    menu = st.selectbox(
+        "Seçenek",
+        ["Login", "Register"]
+    )
+
+    username = st.text_input("Kullanıcı Adı")
+    password = st.text_input(
+        "Şifre",
+        type="password"
+    )
+
+    if menu == "Register":
+
+        if st.button("Kayıt Ol"):
+
+            hashed_password = hash_password(password)
+
+            cursor.execute(
+                "INSERT INTO users VALUES (?, ?)",
+                (username, hashed_password)
+            )
+
+            conn.commit()
+
+            st.success("Kayıt başarılı!")
+
+    else:
+
+        if st.button("Giriş Yap"):
+
+            hashed_password = hash_password(password)
+
+            cursor.execute(
+                "SELECT * FROM users WHERE username=? AND password=?",
+                (username, hashed_password)
+            )
+
+            user = cursor.fetchone()
+
+            if user:
+
+                st.session_state.logged_in = True
+                st.session_state.username = username
+
+                st.success("Giriş başarılı!")
+                st.rerun()
+
+            else:
+
+                st.error("Kullanıcı adı veya şifre yanlış.")
+                if "logged_in" not in st.session_state:
+                   st.session_state.logged_in = False
+
+                if not st.session_state.logged_in:
+                    auth_screen()
+                    st.stop()
 
 sp = spotipy.Spotify(
     auth_manager=SpotifyClientCredentials(
