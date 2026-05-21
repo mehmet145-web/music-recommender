@@ -287,13 +287,6 @@ else:
 
     csv = fav_df.to_csv(index=False).encode("utf-8")
 
-    st.sidebar.download_button(
-        label="Playlist'i CSV indir",
-        data=csv,
-        file_name="playlist.csv",
-        mime="text/csv"
-    )
-
     if "track_name" in fav_df.columns:
 
         remove_song = st.sidebar.selectbox(
@@ -324,5 +317,6 @@ else:
         label="Playlist'i CSV indir",
         data=csv,
         file_name="playlist.csv",
-        mime="text/csv"
+        mime="text/csv",
+        key="download_playlist_csv"
     )
