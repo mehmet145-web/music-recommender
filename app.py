@@ -1,3 +1,4 @@
+import plotly.graph_objects as go
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
@@ -135,6 +136,42 @@ if selected_song.empty:
     st.stop()
 
 selected_song_data = selected_song.iloc[0]
+categories = [
+    "energy",
+    "danceability",
+    "valence",
+    "acousticness"
+]
+
+values = [
+    selected_song_data["energy"],
+    selected_song_data["danceability"],
+    selected_song_data["valence"],
+    selected_song_data["acousticness"]
+]
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatterpolar(
+    r=values,
+    theta=categories,
+    fill='toself',
+    name='Song Features'
+))
+
+fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+            visible=True,
+            range=[0, 1]
+        )
+    ),
+    showlegend=False
+)
+
+st.subheader("📊 Şarkı Özellik Haritası")
+
+st.plotly_chart(fig)
 
 st.sidebar.subheader("🎼 Şarkı Analizi")
 
