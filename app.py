@@ -128,7 +128,13 @@ song = st.selectbox(
     key="song_select"
 )
 
-selected_song_data = df[df["track_name"] == song].iloc[0]
+selected_song = df[df["track_name"] == song]
+
+if selected_song.empty:
+    st.warning("Bu aramada şarkı bulunamadı. Lütfen farklı bir kelime dene.")
+    st.stop()
+
+selected_song_data = selected_song.iloc[0]
 
 st.sidebar.subheader("🎼 Şarkı Analizi")
 
