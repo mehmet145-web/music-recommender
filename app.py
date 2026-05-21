@@ -160,6 +160,12 @@ X = df[features]
 
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    auth_screen()
+    st.stop()
 
 st.title("🎵 Mini Spotify Öneri Sistemi")
 
